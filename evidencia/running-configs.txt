@@ -1,0 +1,1127 @@
+EVIDENCIA TÉCNICA — CONFIGURACIÓN DE EQUIPOS DE RED
+Escandalosos S.A. · Hospital Veterinario y Centro de Diagnóstico
+
+Proyecto Final de Redes
+Universidad Latinoamericana de Ciencia y Tecnología (ULACIT)
+Prof. José Chavarría Molina
+Agosto de 2026
+
+Integrantes:
+  Daniel Fernández Aguilar
+  Joseth Gamboa Guzmán
+  Franco Ricci Morales
+  Marcela Valverde Lara
+  Kevin Villalobos Obando
+
+
+SOBRE ESTE ARCHIVO
+
+Aquí está la configuración en ejecución de los trece equipos de red que componen la
+infraestructura de Escandalosos S.A.: seis routers y siete switches. Cada bloque se obtuvo
+con el comando show running-config sobre el equipo correspondiente, después de haber
+guardado la configuración con write memory.
+
+Los equipos aparecen agrupados por tipo y, dentro de cada grupo, en el orden en que los
+recorremos durante la exposición. Antes de cada configuración dejamos una nota breve sobre
+qué función cumple ese equipo dentro de la red, porque una lista de comandos sin contexto
+no dice mucho por sí sola.
+
+Todas las direcciones pertenecen al bloque 192.168.10.0/24 subneteado en dieciséis subredes
+con máscara 255.255.255.240.
+
+
+CONFIGURACIÓN DE LOS ROUTERS
+
+Los seis routers de la red. Cinco atienden zonas de usuarios y el sexto trabaja
+únicamente como núcleo de tránsito.
+
+
+ROUTER0
+
+Atiende dos zonas por sus dos interfaces FastEthernet. Por la 0/0 sirve el área de atención
+al cliente, y ahí lleva configurado el relevo DHCP hacia el servidor. Por la 0/1 conecta el
+segmento donde vive el propio servidor DHCP, que por estar en la misma red no necesita
+relevo. Su único enlace hacia el resto de la empresa es el Serial0/3/1 contra el núcleo.
+
+!
+version 12.4
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router0
+!
+no ip cef
+no ipv6 cef
+!
+spanning-tree mode pvst
+!
+interface FastEthernet0/0
+ ip address 192.168.10.65 255.255.255.240
+ ip helper-address 192.168.10.82
+ duplex auto
+ speed auto
+!
+interface FastEthernet0/1
+ ip address 192.168.10.81 255.255.255.240
+ duplex auto
+ speed auto
+!
+interface Serial0/1/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/1/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/2/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/2/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/3/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/3/1
+ ip address 192.168.10.210 255.255.255.240
+ clock rate 2000000
+!
+interface Ethernet1/0
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+no cdp run
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+ROUTER4
+
+Es el núcleo de la red. No tiene ninguna red de usuarios colgando: sus dos interfaces
+Gigabit están apagadas a propósito y todo su trabajo pasa por los cinco enlaces seriales que
+lo conectan con los routers de borde. Concentra el tránsito entre zonas.
+
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router4
+!
+no ip cef
+no ipv6 cef
+!
+license udi pid CISCO2901/K9 sn FTX15248MX0-
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/0
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface GigabitEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface Serial0/0/0
+ ip address 192.168.10.146 255.255.255.240
+ clock rate 2000000
+!
+interface Serial0/0/1
+ ip address 192.168.10.130 255.255.255.240
+ clock rate 2000000
+!
+interface Serial0/2/0
+ ip address 192.168.10.193 255.255.255.240
+ clock rate 2000000
+!
+interface Serial0/2/1
+ ip address 192.168.10.162 255.255.255.240
+!
+interface Serial0/3/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/3/1
+ ip address 192.168.10.209 255.255.255.240
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+no cdp run
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+ROUTER7
+
+Es el router de las VLAN. Su interfaz GigabitEthernet0/0 no tiene dirección propia porque
+está dividida en dos subinterfaces, una por VLAN, cada una con encapsulación dot1Q y con su
+propio relevo DHCP. Ese es el montaje que se conoce como router on a stick. Por el lado
+serial tiene tres enlaces, lo que lo convierte en uno de los routers mejor conectados de la
+topología.
+
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router7
+!
+ip cef
+no ipv6 cef
+!
+license udi pid CISCO1941/K9 sn FTX1524OM1N-
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/0
+ no ip address
+ duplex auto
+ speed auto
+!
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.17 255.255.255.240
+ ip helper-address 192.168.10.82
+!
+interface GigabitEthernet0/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.10.241 255.255.255.240
+ ip helper-address 192.168.10.82
+!
+interface GigabitEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface Serial0/0/0
+ ip address 192.168.10.145 255.255.255.240
+!
+interface Serial0/0/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/1/0
+ ip address 192.168.10.177 255.255.255.240
+!
+interface Serial0/1/1
+ ip address 192.168.10.114 255.255.255.240
+ clock rate 2000000
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+ROUTER8
+
+Cubre dos zonas con sus dos interfaces Gigabit: por la 0/0 el segmento del sitio web
+corporativo y el equipo de laboratorio, y por la 0/1 el segmento aislado donde está el
+servidor DNS junto con la estación de administración de red. Ninguna de las dos lleva relevo
+DHCP porque ambos segmentos trabajan con direcciones fijas.
+
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router8
+!
+no ip cef
+no ipv6 cef
+!
+license udi pid CISCO2901/K9 sn FTX1524A5TS-
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/0
+ ip address 192.168.10.49 255.255.255.240
+ duplex auto
+ speed auto
+!
+interface GigabitEthernet0/1
+ ip address 192.168.10.225 255.255.255.240
+ duplex auto
+ speed auto
+!
+interface Serial0/0/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/0/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/3/0
+ ip address 192.168.10.194 255.255.255.240
+!
+interface Serial0/3/1
+ ip address 192.168.10.178 255.255.255.240
+ clock rate 2000000
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+no cdp run
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+ROUTER9
+
+Atiende el segmento donde viven el servidor de correo y el portal de citas en línea. Tiene
+tres enlaces seriales, uno hacia el núcleo y dos hacia routers vecinos, lo que le da caminos
+alternos si alguno se cae.
+
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router9
+!
+no ip cef
+no ipv6 cef
+!
+license udi pid CISCO1941/K9 sn FTX1524IQ7J-
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/0
+ ip address 192.168.10.1 255.255.255.240
+ duplex auto
+ speed auto
+!
+interface GigabitEthernet0/1
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface Serial0/0/0
+ ip address 192.168.10.161 255.255.255.240
+ clock rate 2000000
+!
+interface Serial0/0/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/1/0
+ ip address 192.168.10.113 255.255.255.240
+!
+interface Serial0/1/1
+ ip address 192.168.10.97 255.255.255.240
+ clock rate 2000000
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+no cdp run
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+ROUTER10
+
+Sirve el segmento donde están el servidor IoT, el catálogo de la farmacia, el equipo de
+servicios y la puerta automática. Como varios de esos equipos reciben dirección automática,
+su interfaz GigabitEthernet0/1 lleva configurado el relevo DHCP.
+
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router10
+!
+no ip cef
+no ipv6 cef
+!
+license udi pid CISCO2901/K9 sn FTX1524OQ0V-
+!
+spanning-tree mode pvst
+!
+interface GigabitEthernet0/0
+ no ip address
+ duplex auto
+ speed auto
+ shutdown
+!
+interface GigabitEthernet0/1
+ ip address 192.168.10.33 255.255.255.240
+ ip helper-address 192.168.10.82
+ duplex auto
+ speed auto
+!
+interface Serial0/0/0
+ ip address 192.168.10.129 255.255.255.240
+!
+interface Serial0/0/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial0/2/0
+ ip address 192.168.10.98 255.255.255.240
+!
+interface Serial0/2/1
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+router ospf 1
+ log-adjacency-changes
+ network 192.168.10.0 0.0.0.255 area 0
+!
+ip classless
+!
+ip flow-export version 9
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
+
+
+CONFIGURACIÓN DE LOS SWITCHES
+
+Los siete switches. Empezamos por el Switch7 porque es el único con VLAN y enlace
+troncal configurados; el resto trabaja con la configuración por defecto.
+
+
+SWITCH7
+
+Es el switch más interesante de la red y el único con configuración de VLAN. Su puerto
+FastEthernet0/1 está en modo troncal y es el que lleva el tráfico de las dos VLAN hacia el
+router por un solo cable. Los puertos 0/2 y 0/3 son de acceso, asignados a la VLAN 20 y a la
+VLAN 10 respectivamente.
+
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch7
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+ switchport mode trunk
+!
+interface FastEthernet0/2
+ switchport access vlan 20
+ switchport mode access
+!
+interface FastEthernet0/3
+ switchport access vlan 10
+ switchport mode access
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH0
+
+Da servicio al área de atención al cliente. Es un switch de capa 2 sin dirección IP, como
+todos los de esta red: su trabajo es reenviar tramas por dirección MAC, no enrutar.
+
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch0
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+ switchport mode access
+ switchport voice vlan 1
+!
+interface FastEthernet0/2
+ switchport mode access
+ switchport voice vlan 1
+!
+interface FastEthernet0/3
+ switchport mode access
+ switchport voice vlan 1
+!
+interface FastEthernet0/4
+ switchport mode access
+ switchport voice vlan 1
+!
+interface FastEthernet0/5
+ switchport mode access
+ switchport voice vlan 1
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH1
+
+Conecta el servidor de correo y el portal de citas con su router. Trabaja con la
+configuración por defecto porque en ese segmento no hace falta segmentar nada.
+
+!
+version 15.0
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch1
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+!
+interface FastEthernet0/2
+!
+interface FastEthernet0/3
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH2
+
+Da servicio al segmento donde vive el servidor DHCP junto con el ventilador de
+hospitalización.
+
+!
+version 15.0
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch2
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+!
+interface FastEthernet0/2
+!
+interface FastEthernet0/3
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH4
+
+Conecta el sitio web corporativo y el equipo del laboratorio con su router.
+
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch4
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+!
+interface FastEthernet0/2
+!
+interface FastEthernet0/3
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH5
+
+Sirve al segmento aislado del servidor DNS y la estación de administración de red.
+
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch5
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+!
+interface FastEthernet0/2
+!
+interface FastEthernet0/3
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+SWITCH12
+
+Conecta el servidor IoT, el catálogo de la farmacia, el equipo de servicios y la puerta
+automática con su router.
+
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Switch12
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+interface FastEthernet0/1
+!
+interface FastEthernet0/2
+!
+interface FastEthernet0/3
+!
+interface FastEthernet0/4
+!
+interface FastEthernet0/5
+!
+interface FastEthernet0/6
+!
+interface FastEthernet0/7
+!
+interface FastEthernet0/8
+!
+interface FastEthernet0/9
+!
+interface FastEthernet0/10
+!
+interface FastEthernet0/11
+!
+interface FastEthernet0/12
+!
+interface FastEthernet0/13
+!
+interface FastEthernet0/14
+!
+interface FastEthernet0/15
+!
+interface FastEthernet0/16
+!
+interface FastEthernet0/17
+!
+interface FastEthernet0/18
+!
+interface FastEthernet0/19
+!
+interface FastEthernet0/20
+!
+interface FastEthernet0/21
+!
+interface FastEthernet0/22
+!
+interface FastEthernet0/23
+!
+interface FastEthernet0/24
+!
+interface GigabitEthernet0/1
+!
+interface GigabitEthernet0/2
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+line con 0
+!
+line vty 0 4
+ login
+line vty 5 15
+ login
+!
+end
+
+
+NOTAS DE LECTURA
+
+Sobre las interfaces apagadas. Varias interfaces aparecen con no ip address y shutdown. Son
+puertos que la topología no usa y los dejamos deshabilitados a propósito: dejar puertos
+activos sin uso es una mala práctica de seguridad.
+
+Sobre la velocidad de reloj. En los enlaces seriales aparece clock rate 2000000 en uno de los
+dos extremos. Ese es el equipo que actúa como DCE y marca el ritmo de la comunicación; el
+otro extremo lo recibe y no necesita configurarlo.
+
+Sobre OSPF. Los seis routers usan el mismo proceso 1 y la misma área 0, y anuncian toda la
+red con una sola sentencia gracias a la máscara comodín 0.0.0.255. No hay ninguna ruta
+estática configurada en la red: todas las rutas se aprenden por OSPF.
+
+Sobre el relevo DHCP. La instrucción ip helper-address 192.168.10.82 aparece en las
+interfaces que dan hacia zonas con clientes que reciben dirección automática. Sin ella, las
+peticiones DHCP no cruzarían de una red a otra porque son mensajes de difusión.
+
+Sobre los switches. Ninguno tiene dirección IP, y la interfaz Vlan1 está apagada en todos.
+Trabajan en capa dos y no necesitan dirección para cumplir su función. El único con
+configuración específica es el Switch7, que es donde viven las VLAN y el enlace troncal.

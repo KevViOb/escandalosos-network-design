@@ -1,0 +1,21 @@
+# Respaldos y versiones intermedias de Packet Tracer
+*.pkt.bak
+*~
+*.bak
+* (respaldo*.pkt
+*_backup.pkt
+
+# Documentos internos de trabajo, no forman parte de la entrega
+Bitacora_*.docx
+Guion_*.docx
+CONTEXTO-*.md
+PROYECTO-PARA-CURRICULUM.md
+
+# Archivos temporales de Office
+~$*.docx
+~$*.xlsx
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
