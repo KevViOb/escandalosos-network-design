@@ -24,6 +24,14 @@ red enrutada** y se pudiera demostrar.
 
 ## Topología
 
+![Topología de la red en Cisco Packet Tracer](docs/topologia.png)
+
+Cada zona de color corresponde a una subred distinta. Las líneas rojas entre los routers del centro
+son los enlaces seriales punto a punto, cada uno con su propia subred etiquetada. La tabla que
+aparece abajo a la derecha es el esquema de subneteo, anotado sobre el propio lienzo.
+
+El mismo diseño, en esquema:
+
 ```mermaid
 graph TB
     subgraph NUCLEO[" "]
